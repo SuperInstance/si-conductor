@@ -1,0 +1,204 @@
+# Conductor Configuration
+# LucidDreamer.AI — The Routing Layer
+# ZeroClaw Engineering Build 4
+
+conductor:
+  name: "The Conductor"
+  version: "0.1.0"
+  description: >
+    The routing layer that reads each visitor as a session prompt,
+    recruits the right agents from the Tap cast, routes messages,
+    and escalates when confidence drops.
+
+# --- Session Settings ---
+session:
+  max_turns: 50              # hard limit per session
+  idle_timeout_seconds: 1800 # 30 minutes — visitor "falls asleep"
+  max_active_agents: 4       # don't summon everyone at once
+  min_active_agents: 1       # at least someone should be talking
+
+# --- Engagement Tracking ---
+engagement:
+  initial_level: 0.5         # neutral start
+  high_threshold: 0.7        # visitor is highly engaged
+  low_threshold: 0.3         # visitor is disengaging
+  decay_per_turn: 0.02       # natural decay if nothing happens
+  boost_per_positive: 0.1    # positive signal (question, detail, etc.)
+  penalty_per_negative: 0.15 # negative signal (one-word, silence)
+
+# --- Escalation ---
+escalation:
+  # When conductor confidence in its routing drops below this,
+  # bring in a heavier model for analysis.
+  confidence_threshold: 0.4
+  # How many low-confidence turns before escalating
+  consecutive_low_confidence_limit: 2
+  # The heavy model to call when escalated
+  escalation_model: "deepseek/v4-pro"
+  # Agents that are "heavy" and only recruited when needed
+  heavyweight_agents:
+    - pro
+    - nemotron
+
+# --- Agent Availability ---
+# Which agents are always on vs. on-demand
+availability:
+  always_on:
+    - barnacle
+  on_demand:
+    - flash
+    - pro
+    - hermes
+    - wesley
+    - seed
+    - nemotron
+
+# --- Intent Classification ---
+intent:
+  types:
+    - conversation      # casual talk, getting to know you
+    - creative          # wants to make something (story, code, art)
+    - learning          # asks questions, wants to understand
+    - listening         # wants to be entertained, hear stories
+    - problem_solving   # has a specific issue to work through
+    - collaboration     # wants to build together
+    - exploration       # browsing, curious, no fixed goal
+
+  # Keywords that signal each intent (used by lightweight classifier)
+  keywords:
+    conversation:
+      - "hello"
+      - "hey"
+      - "how are you"
+      - "what's up"
+      - "tell me about yourself"
+    creative:
+      - "write"
+      - "create"
+      - "story"
+      - "poem"
+      - "draw"
+      - "design"
+      - "build"
+      - "compose"
+    learning:
+      - "how does"
+      - "why is"
+      - "what is"
+      - "explain"
+      - "teach"
+      - "learn"
+      - "understand"
+    listening:
+      - "tell me a story"
+      - "play something"
+      - "read to me"
+      - "i'm bored"
+      - "entertain"
+    problem_solving:
+      - "fix"
+      - "debug"
+      - "solve"
+      - "issue"
+      - "problem"
+      - "error"
+      - "broken"
+    collaboration:
+      - "let's"
+      - "together"
+      - "collaborate"
+      - "help me make"
+      - "brainstorm"
+    exploration:
+      - "show me"
+      - "what's here"
+      - "browse"
+      - "explore"
+      - "what can you do"
+
+# --- Agent Specialties ---
+# Maps intent types to agents best suited for them
+routing:
+  conversation:
+    primary: [barnacle, flash]
+    secondary: [seed]
+  creative:
+    primary: [flash, wesley]
+    secondary: [hermes]
+  learning:
+    primary: [wesley, pro]
+    secondary: [seed]
+  listening:
+    primary: [barnacle, flash]
+    secondary: [wesley]
+  problem_solving:
+    primary: [pro, nemotron]
+    secondary: [hermes]
+  collaboration:
+    primary: [flash, pro]
+    secondary: [wesley, hermes]
+  exploration:
+    primary: [barnacle, seed]
+    secondary: [flash]
+
+# --- Satisfaction Signals ---
+satisfaction:
+  positive_signals:
+    - "thanks"
+    - "that's great"
+    - "love it"
+    - "amazing"
+    - "interesting"
+    - "tell me more"
+    - "wow"
+    - "cool"
+    - "nice"
+  negative_signals:
+    - "boring"
+    - "that's wrong"
+    - "don't like"
+    - "stop"
+    - "bye"
+    - "ugh"
+    - "no"
+    - "not helpful"
+  neutral_threshold: 0.0  # score above = positive, below = negative
+
+# --- Model Assignments ---
+# Which model powers each agent
+models:
+  barnacle:
+    provider: "zai"
+    model: "glm-5.2"
+    tier: "light"
+    cost_per_call: 0.0
+  flash:
+    provider: "deepseek"
+    model: "v4-flash"
+    tier: "light"
+    cost_per_call: 0.001
+  pro:
+    provider: "deepseek"
+    model: "v4-pro"
+    tier: "heavy"
+    cost_per_call: 0.003
+  hermes:
+    provider: "deepinfra"
+    model: "NousResearch/Hermes-3-Llama-3.1-405B"
+    tier: "heavy"
+    cost_per_call: 0.02
+  wesley:
+    provider: "ollama"
+    model: "granite3.1-dense:2b"
+    tier: "light"
+    cost_per_call: 0.0
+  seed:
+    provider: "deepinfra"
+    model: "ByteDance/Seed-2.0-mini"
+    tier: "light"
+    cost_per_call: 0.002
+  nemotron:
+    provider: "deepinfra"
+    model: "nvidia/Nemotron-3-Ultra-550B"
+    tier: "heavy"
+    cost_per_call: 0.03
